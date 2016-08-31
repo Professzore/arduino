@@ -1,0 +1,50 @@
+// Potméter jel analóg beolvasása és kiküldése a Serial Monitorra
+// Potméter bekötés: 1 fix láb: +5V, 3 fix láb: GND, középső (változó) láb: A5
+
+
+const int pot1 = A5;    // bemenet A5-re, lehet gomb vagy potméter.
+int ertek;              // ez az az érték, amit át akarunk küldeni a PC-re
+int elozoertek;         // ez az az érték, amit legutóbb átküldtünk a PC-re
+int atlagolo = 0;       // ezt az értéket fogjuk az átlagoláshoz használni
+const int konstans = 5; // a lehetséges elmozdulás értéke (hiszterézis)
+
+void setup() {
+  pinMode(pot1, INPUT);  // nem kell, de egyértelmű így
+  Serial.begin(9600);
+// ez az alábbi három funkcióhívás csak azért kell, hogy a kezdeti értéket egyszer beállítsuk (amihez képest nézzük a változást), és ezt kiírjuk a képernyőre
+  beolvasas();           // beolvassuk az aktuális értéket,
+  idokiiras();          // kiírjuk a program indulás óta eltelt időt másodpercben, majd utána
+  kiiras();              // a beolvasott értéket
+}
+
+// a függvény beolvassa az A5 potméter aktuális állását (a bemeneten lévő analóg jel értékét)
+void beolvasas()
+{
+  for (int i=0; i<20; i++) {
+    atlagolo += analogRead(pot1);  // az analogRead beolvassa a bemenet aktuális értékét majd hozzáadja az átlag kumulált összegéhez, mindezt 20-szor (for loop)
+  }
+  ertek = atlagolo/20;             // a kapott értékeket átlagoljuk
+  atlagolo = 0;                    // nullázzuk az átlagolót
+}
+
+// a függvény kiírja az aktuális "időt" (reset óta eltelt idő másodpercekben)
+void idokiiras()
+{
+  Serial.print(millis()/1000);
+  Serial.print(": ");
+}
+
+// kiírja a potméter aktuális értékét a Serial Monitorra
+void kiiras() {
+    Serial.println(ertek);
+    elozoertek = ertek;
+  }
+ 
+
+void loop() {
+  beolvasas();
+  if ((elozoertek + konstans) < ertek || (elozoertek - konstans) > ertek) {  // megnézzük, hogy eleget mozgott-e a potméter
+    idokiiras();
+    kiiras();
+  }
+}
